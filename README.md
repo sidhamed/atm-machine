@@ -1,6 +1,6 @@
 <h2> Atm Machine Software </h2>
 a simple web application simulating an ATM , with services like Balance Inquiry , and Withdrawal , using JSON to exchange data
-and POST http verb.
+and HTTP POST verb.
 
 <h3>built using :</h3></br>
  * Java </br>
