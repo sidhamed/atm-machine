@@ -10,3 +10,4 @@ unit tests are included
 Jacoco coverage reports location { build/jacoco/test/html/com.atm.machine.services/ }
 Jar location { build/libs/ }
 
+
