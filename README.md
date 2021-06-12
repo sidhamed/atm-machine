@@ -1,4 +1,6 @@
 <h2> Atm Machine Software </h2>
+a simple web application simulating an ATM , with services like Balance Inquiry , and Withdrawal , using JSON to exchange data
+and POST http verb.
 
 <h3>built using :</h3></br>
  * Java </br>
@@ -14,5 +16,13 @@
 <h3> Config : </h3></br>
  * create a new schema with name {atm} </br>
  * make sure Gradle version is at least 7 </br>
+
+<h3> Improvments before going live : </h3></br>
+ * logging </br>
+ * SSL/TLS </br>
+ * Encryption </br>
+ * API authentication/autherization </br>
+ * More test coverage </br>
+ * documentation
 
 
