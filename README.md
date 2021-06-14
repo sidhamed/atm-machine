@@ -18,10 +18,10 @@ and HTTP POST verb.
  * make sure Gradle version is at least 7 </br>
 
 <h3> Run : </h3></br>
-* clone source from repo </br>
-* gradle build </br>
-* java -jar build/libs/machine-0.0.1-SNAPSHOT.jar </br>
-* consume API </br>
+* get source using : clone source from repo </br>
+* build application using : gradle build </br>
+* run application using : java -jar build/libs/machine-0.0.1-SNAPSHOT.jar </br>
+* consume API using : Postman or any other tool </br>
 
 <h3> API : </h3></br>
 * POST http://localhost:8080/atm/withdraw </br>
