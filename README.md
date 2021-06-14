@@ -21,6 +21,7 @@ and HTTP POST verb.
 * clone source from repo </br>
 * gradle build </br>
 * java -jar build/libs/machine-0.0.1-SNAPSHOT.jar </br>
+* consume API </br>
 
 <h3> API : </h3></br>
 * POST http://localhost:8080/atm/withdraw </br>
