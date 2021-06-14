@@ -23,47 +23,47 @@ and HTTP POST verb.
 * java -jar build/libs/machine-0.0.1-SNAPSHOT.jar </br>
 
 <h3> API : </h3></br>
-* POST http://localhost:8080/atm/withdraw 
-  Request : 
-  {
-    "accountNumber" : "987654321" ,
-    "pin" : "4321" ,
-    "amount" : 1305.0
-  }
-  Response :
-  {
-    "accountNumber": "987654321",
-    "balance": 0.0,
-    "overdraft": 75.0,
-    "currency": "euro",
-    "amount": 1305.0,
-    "responseCode": "0",
-    "responseStatus": "approved",
-    "responseMessage": "successful withdrawal and dispense banknotes",
-    "bankNotes": {
-        "fifty": 10,
-        "twenty": 30,
-        "ten": 20,
+* POST http://localhost:8080/atm/withdraw </br>
+  Request : </br>
+  {</br>
+    "accountNumber" : "987654321" ,</br>
+    "pin" : "4321" ,</br>
+    "amount" : 1305.0</br>
+  }</br>
+  Response :</br>
+  {</br>
+    "accountNumber": "987654321", </br>
+    "balance": 0.0,</br>
+    "overdraft": 75.0,</br>
+    "currency": "euro",</br>
+    "amount": 1305.0,</br>
+    "responseCode": "0",</br>
+    "responseStatus": "approved",</br>
+    "responseMessage": "successful withdrawal and dispense banknotes",</br>
+    "bankNotes": {</br>
+        "fifty": 10,</br>
+        "twenty": 30,</br>
+        "ten": 20,</br>
         "five": 1
-    }
-}
-* POST http://localhost:8080/atm/balance
-* Request :
-  {
-    "accountNumber": "987654321",
-    "pin": "4321"
-  } 
-  Response :
-  {
-    "accountNumber": "987654321",
-    "balance": 1230.0,
-    "overdraft": 150.0,
-    "currency": "euro",
-    "maximumWithdrawalAmount": 1380.0,
-    "responseCode": "0",
-    "responseStatus": "approved",
-    "responseMessage": "successful balance inquiry"
-  }
+    }</br>
+}</br>
+* POST http://localhost:8080/atm/balance </br>
+* Request :</br>
+  {</br>
+    "accountNumber": "987654321",</br>
+    "pin": "4321"</br>
+  } </br>
+  Response :</br>
+  {</br>
+    "accountNumber": "987654321",</br>
+    "balance": 1230.0,</br>
+    "overdraft": 150.0,</br>
+    "currency": "euro",</br>
+    "maximumWithdrawalAmount": 1380.0,</br>
+    "responseCode": "0",</br>
+    "responseStatus": "approved",</br>
+    "responseMessage": "successful balance inquiry"</br>
+  }</br>
 
 <h3> Improvments before going live : </h3></br>
  * logging </br>
