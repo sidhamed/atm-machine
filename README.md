@@ -14,7 +14,7 @@ and HTTP POST verb.
 
 
 <h3> Config : </h3></br>
- * create a new schema with name {atm} </br>
+ * create a new database schema with name {atm} </br>
  * make sure Gradle version is at least 7 </br>
 
 <h3> Run : </h3></br>
