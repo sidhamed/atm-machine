@@ -22,7 +22,7 @@ and HTTP POST verb.
  * SSL/TLS </br>
  * Encryption </br>
  * API authentication/autherization </br>
- * More test coverage </br>
+ * More test coverage to include validation and endpoints</br>
  * documentation
 
 
