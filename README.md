@@ -22,6 +22,49 @@ and HTTP POST verb.
 * gradle build </br>
 * java -jar build/libs/machine-0.0.1-SNAPSHOT.jar </br>
 
+<h3> API : </h3></br>
+* POST http://localhost:8080/atm/withdraw 
+  Request : 
+  {
+    "accountNumber" : "987654321" ,
+    "pin" : "4321" ,
+    "amount" : 1305.0
+  }
+  Response :
+  {
+    "accountNumber": "987654321",
+    "balance": 0.0,
+    "overdraft": 75.0,
+    "currency": "euro",
+    "amount": 1305.0,
+    "responseCode": "0",
+    "responseStatus": "approved",
+    "responseMessage": "successful withdrawal and dispense banknotes",
+    "bankNotes": {
+        "fifty": 10,
+        "twenty": 30,
+        "ten": 20,
+        "five": 1
+    }
+}
+* POST http://localhost:8080/atm/balance
+* Request :
+  {
+    "accountNumber": "987654321",
+    "pin": "4321"
+  } 
+  Response :
+  {
+    "accountNumber": "987654321",
+    "balance": 1230.0,
+    "overdraft": 150.0,
+    "currency": "euro",
+    "maximumWithdrawalAmount": 1380.0,
+    "responseCode": "0",
+    "responseStatus": "approved",
+    "responseMessage": "successful balance inquiry"
+  }
+
 <h3> Improvments before going live : </h3></br>
  * logging </br>
  * SSL/TLS </br>
