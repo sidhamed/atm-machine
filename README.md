@@ -17,6 +17,11 @@ and HTTP POST verb.
  * create a new schema with name {atm} </br>
  * make sure Gradle version is at least 7 </br>
 
+<h3> Run : </h3></br>
+* clone source from repo </br>
+* gradle build </br>
+* java -jar build/libs/machine-0.0.1-SNAPSHOT.jar </br>
+
 <h3> Improvments before going live : </h3></br>
  * logging </br>
  * SSL/TLS </br>
