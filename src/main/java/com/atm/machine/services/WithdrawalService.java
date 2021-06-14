@@ -21,9 +21,6 @@ public class WithdrawalService {
 	private AccountRepository accountRepository;
 
 	@Autowired
-	private AccountService accountService;
-
-	@Autowired
 	private BankNotesRepository notesRepository;
 
 	public BankNotes edit(BankNotes bankNotes) throws CommonServiceException {
@@ -63,16 +60,18 @@ public class WithdrawalService {
 							retrievedAccount.setOverdraft(accessibleAmount - request.getAmount());
 						}
 
-						Account edited = accountService.edit(retrievedAccount);
-						response.setBankNotes(bankNotes);
-						response.setAccountNumber(edited.getAccountNumber());
 						response.setAmount(request.getAmount());
 						response.setCurrency(retrievedAccount.getCurrency());
-						response.setBalance(edited.getBalance());
-						response.setOverdraft(edited.getOverdraft());
+						response.setBankNotes(bankNotes);
 						response.setResponseCode("0");
 						response.setResponseMessage("successful withdrawal and dispense banknotes");
 						response.setResponseStatus("approved");
+
+						Account edited = accountRepository.saveAndFlush(retrievedAccount);
+						response.setAccountNumber(edited.getAccountNumber());
+						response.setBalance(edited.getBalance());
+						response.setOverdraft(edited.getOverdraft());
+
 					} else {
 						// problem while dispensing notes
 						response.setAccountNumber(request.getAccountNumber());
