@@ -6,7 +6,7 @@ and HTTP POST verb.
  * Java </br>
  * Spring Boot Framework </br>
  * Gradle { Minimum version 7 } </br>
- * MySql { databatse : atm , user : root , password : allroot } </br>
+ * MySql { database : atm , user : root , password : allroot } </br>
  * Dockerfile is included </br>
  * unit tests are included , report location { build/reports/tests/test/packages/ }</br>
  * Jacoco coverage reports location { build/jacoco/test/html/com.atm.machine.services/ } </br>
