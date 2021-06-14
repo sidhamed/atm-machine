@@ -109,6 +109,7 @@ public class WithdrawalServiceTest {
 			assertThat(recieved.getResponseStatus()).isEqualTo("failed");
 		} catch (CommonServiceException e) {
 			e.printStackTrace();
+			
 		}
 
 	}
