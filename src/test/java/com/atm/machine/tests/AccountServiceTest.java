@@ -1,16 +1,20 @@
 package com.atm.machine.tests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.AdditionalAnswers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.atm.machine.exceptions.CommonServiceException;
@@ -42,10 +46,158 @@ public class AccountServiceTest {
 		two.setPin("4321");
 		two.setBalance(1230);
 		two.setOverdraft(150);
+		
+		List<Account> list = new ArrayList<Account>();
+		list.add(one);
+		list.add(two);
 
 		
+		
+		
+		
+		Account deleted = null;
+
 		lenient().when(accountRepository.findByAccountNumber("123456789")).thenReturn(one);
-		lenient().when(accountRepository.findByAccountNumber("987654321")).thenReturn(one);
+		lenient().when(accountRepository.findByAccountNumber("987654321")).thenReturn(two);
+		lenient().when(accountRepository.findByAccountNumber("9876543210")).thenReturn(deleted);
+		
+		try {
+			
+			lenient().when(accountService.findAll()).thenReturn(list);
+		} catch (CommonServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	@DisplayName("Test successful findByAccountNumber")
+	void shouldGetAccountByPhoneNumber() {
+
+		Account account = new Account();
+		account.setAccountNumber("123456789");
+
+		try {
+			Account recieved = accountService.findByAccountNumber(account);
+			assertThat(recieved.getAccountNumber()).isEqualTo("123456789");
+
+		} catch (CommonServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	@Test
+	@DisplayName("Test successful findByAccountNumber Account not found")
+	void shouldNotGetAccountByPhoneNumber() {
+
+		Account account = new Account();
+		account.setAccountNumber("1234567");
+
+		try {
+			Account recieved = accountService.findByAccountNumber(account);
+			assertThat(recieved).isNull();
+
+		} catch (CommonServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	@Test
+	@DisplayName("Test successful save a new Account ")
+	void shouldSaveAccountAndReturnIt() {
+
+		Account account = new Account();
+		account.setAccountNumber("987654321");
+		account.setPin("4321");
+		account.setBalance(1230);
+		account.setOverdraft(150);
+		account.setStatus("Active");
+		account.setDateCreated(new Date());
+		account.setCurrency("euro");
+		
+		
+
+		try {
+			lenient().when(accountService.save(account)).thenReturn(account);
+			Account recieved = accountService.save(account);
+			assertThat(recieved).isNotNull();
+			assertThat(recieved.getAccountNumber()).isEqualTo("987654321");
+
+		} catch (CommonServiceException e) {
+			e.printStackTrace();
+		}
+
+	}
+	
+	@Test
+	@DisplayName("Test successful deletion by ID")
+	void shouldDeleteAccount() {
+
+		Account account = new Account();
+		account.setAccountNumber("9876543210");
+		account.setPin("4321");
+		account.setBalance(1230);
+		account.setOverdraft(150);
+		account.setStatus("Active");
+		account.setDateCreated(new Date());
+		account.setCurrency("euro");
+		account.setSystemId((long) 25);
+
+		try {
+			accountService.deleteById(account.getSystemId());
+			Account deleted = accountService.findByAccountNumber(account);
+			assertThat(deleted).isNull();
+
+		} catch (CommonServiceException e) {
+			e.printStackTrace();
+		}
+
+	}
+	
+	@Test
+	@DisplayName("Test successful find all accounts")
+	void shouldReturnAllAccounts() {
+
+		try {
+			List<Account> returnedList = accountService.findAll();
+			assertThat(returnedList).isNotNull();
+			assertThat(returnedList).isNotEmpty();
+
+		} catch (CommonServiceException e) {
+			e.printStackTrace();
+		}
+
+	}
+	
+	@Test
+	@DisplayName("Test successful edit account")
+	void shouldEditAndReturnEditAccount() {
+		
+		Account account = new Account();
+		account.setAccountNumber("987654321");
+		account.setPin("4321");
+		account.setBalance(12300);
+		account.setOverdraft(150);
+		account.setStatus("Active");
+		account.setDateCreated(new Date());
+		account.setCurrency("euro");
+		
+		
+
+
+		try {
+			lenient().when(accountService.edit(account)).thenReturn(account);
+			Account editedAccount = accountService.edit(account);
+			assertThat(editedAccount).isNotNull();
+			assertThat(editedAccount).isEqualTo(account);
+
+		} catch (CommonServiceException e) {
+			e.printStackTrace();
+		}
 
 	}
 
@@ -68,7 +220,7 @@ public class AccountServiceTest {
 		}
 
 	}
-	
+
 	@Test
 	@DisplayName("Test Successful Balance Inquiry")
 	void shouldReturnBalanceSuccessfullyTest() {
