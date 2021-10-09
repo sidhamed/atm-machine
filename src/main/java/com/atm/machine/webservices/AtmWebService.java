@@ -18,7 +18,7 @@ import com.atm.machine.validation.WithdrawalValidationUtil;
 
 @RestController
 public class AtmWebService {
-	// this is a random comment on this class and should be removed later
+	// this comment is edited from the website of GitHub
 
 	@Autowired
 	private AccountService accountService;
