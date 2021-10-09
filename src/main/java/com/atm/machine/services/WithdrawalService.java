@@ -6,9 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.atm.machine.exceptions.CommonServiceException;
+import com.atm.machine.exceptions.AccountNotFoundException;
+import com.atm.machine.exceptions.AmountNotAccessibleException;
+import com.atm.machine.exceptions.WrongPINException;
 import com.atm.machine.models.Account;
 import com.atm.machine.models.BankNotes;
+import com.atm.machine.models.DispenseResult;
 import com.atm.machine.repositories.AccountRepository;
 import com.atm.machine.repositories.BankNotesRepository;
 import com.atm.machine.requests.WithdrawalRequest;
@@ -17,228 +20,329 @@ import com.atm.machine.responses.WithdrawalResponse;
 @Service
 public class WithdrawalService {
 
+	private static final String APPROVED = "approved";
+	private static final String FAILED = "failed";
+	private static final int FIVE_EUROS_BILL = 3;
+	private static final int TEN_EUROS_BILL = 2;
+	private static final int TWENTY_EUROS_BILL = 1;
+	private static final int FIFTY_EUROS_BILL = 0;
+
 	@Autowired
 	private AccountRepository accountRepository;
 
 	@Autowired
 	private BankNotesRepository notesRepository;
+	private int[] dispensibleNotes = new int[] { 50, 20, 10, 5 };
 
-	public BankNotes edit(BankNotes bankNotes) throws CommonServiceException {
+	public BankNotes edit(BankNotes bankNotes) {
 
 		return notesRepository.saveAndFlush(bankNotes);
 	}
 
-	@Transactional
-	public WithdrawalResponse withdraw(WithdrawalRequest request) throws CommonServiceException {
-		Account retrievedAccount = accountRepository.findByAccountNumber(request.getAccountNumber());
-		WithdrawalResponse response = new WithdrawalResponse();
-		// make sure there's an account
+	private Account findAccountByAccountNumber(String accountNumber) throws AccountNotFoundException {
+		Account retrievedAccount = accountRepository.findByAccountNumber(accountNumber);
 		if (retrievedAccount == null) {
-			response.setAccountNumber(request.getAccountNumber());
-			response.setAmount(request.getAmount());
-			response.setCurrency("");
-			response.setResponseCode("2");
-			response.setBankNotes(new BankNotes());
-			response.setResponseMessage("invalid account number");
-			response.setResponseStatus("failed");
-		} else {
-			// check if pins match
-			if (request.getPin().equalsIgnoreCase(retrievedAccount.getPin())) {
-				double accessibleAmount = retrievedAccount.getBalance() + retrievedAccount.getOverdraft();
-				// if user has access to enough money to cover the withdrawal transaction
-				if (request.getAmount() <= accessibleAmount) {
-					// dispense money
-					BankNotes bankNotes = dispense(request.getAmount());
-					// successfully dispensed
-					if (bankNotes.getResponseCode().equalsIgnoreCase("0")) {
-						// reflect that on account
-						if (request.getAmount() < retrievedAccount.getBalance()) {
-							retrievedAccount.setBalance(retrievedAccount.getBalance() - request.getAmount());
-						} else if (request.getAmount() > retrievedAccount.getBalance()
-								&& request.getAmount() <= accessibleAmount) {
-							retrievedAccount.setBalance(0);
-							retrievedAccount.setOverdraft(accessibleAmount - request.getAmount());
-						}
+			throw new AccountNotFoundException();
+		}
+		return retrievedAccount;
+	}
 
-						response.setAmount(request.getAmount());
-						response.setCurrency(retrievedAccount.getCurrency());
-						response.setBankNotes(bankNotes);
-						response.setResponseCode("0");
-						response.setResponseMessage("successful withdrawal and dispense banknotes");
-						response.setResponseStatus("approved");
+	private void verifyPIN(WithdrawalRequest request, Account retrievedAccount) throws WrongPINException {
+		if (noMatchingPinNumbers(request, retrievedAccount)) {
+			throw new WrongPINException();
+		}
+	}
 
-						Account edited = accountRepository.saveAndFlush(retrievedAccount);
-						response.setAccountNumber(edited.getAccountNumber());
-						response.setBalance(edited.getBalance());
-						response.setOverdraft(edited.getOverdraft());
+	private boolean noMatchingPinNumbers(WithdrawalRequest request, Account retrievedAccount) {
+		return !request.getPin().equalsIgnoreCase(retrievedAccount.getPin());
+	}
 
-					} else {
-						// problem while dispensing notes
-						response.setAccountNumber(request.getAccountNumber());
-						response.setAmount(request.getAmount());
-						response.setBankNotes(new BankNotes());
-						response.setBalance(retrievedAccount.getBalance());
-						response.setCurrency(retrievedAccount.getCurrency());
-						response.setOverdraft(retrievedAccount.getOverdraft());
-						response.setResponseCode(bankNotes.getResponseCode());
-						response.setResponseMessage(bankNotes.getResponseMessage());
-						response.setResponseStatus(bankNotes.getResponseStatus());
-					}
+	private double checkAmountAccessibility(WithdrawalRequest request, Account retrievedAccount)
+			throws AmountNotAccessibleException {
+		double accessibleAmount = retrievedAccount.getBalance() + retrievedAccount.getOverdraft();
+		if (amountNotAcessible(request, accessibleAmount)) {
+			throw new AmountNotAccessibleException(retrievedAccount);
+		}
+		return accessibleAmount;
+	}
 
-				} else {
-					// withdrawal amount not valid
-					response.setAccountNumber(request.getAccountNumber());
-					response.setAmount(request.getAmount());
-					response.setBalance(retrievedAccount.getBalance());
-					response.setCurrency(retrievedAccount.getCurrency());
-					response.setOverdraft(retrievedAccount.getOverdraft());
-					response.setBankNotes(new BankNotes());
-					response.setResponseCode("3");
-					response.setResponseMessage("amount is larger than maximum withdrawal amount");
-					response.setResponseStatus("failed");
-				}
+	private boolean amountNotAcessible(WithdrawalRequest request, double accessibleAmount) {
+		return request.getAmount() > accessibleAmount;
+	}
 
-			} else {
+	private WithdrawalResponse updateAccount(WithdrawalRequest request, Account retrievedAccount,
+			double accessibleAmount, BankNotes bankNotes) {
+		// reflect that on account
+		validateWithdrawalRequest(request, retrievedAccount, accessibleAmount);
 
-				response.setAccountNumber(request.getAccountNumber());
-				response.setAmount(request.getAmount());
-				response.setBankNotes(new BankNotes());
-				response.setResponseCode("1");
-				response.setResponseMessage("invalid pin");
-				response.setResponseStatus("failed");
+		WithdrawalResponse response = new WithdrawalResponse();
+		if (withdrawalNotSuccessful(bankNotes))
+			return generateFailureResponse(request, retrievedAccount, bankNotes);
 
-			}
+		enrichResponseWithMessage(response, bankNotes.getResponseCode(), bankNotes.getResponseMessage(),
+				bankNotes.getResponseStatus());
 
+		Account edited = accountRepository.saveAndFlush(retrievedAccount);
+
+		generateSuccessResponse(response, edited);
+
+		return response;
+	}
+
+	private void generateSuccessResponse(WithdrawalResponse response, Account edited) {
+		response.setAccountNumber(edited.getAccountNumber());
+		response.setBalance(edited.getBalance());
+		response.setOverdraft(edited.getOverdraft());
+	}
+
+	private WithdrawalResponse generateFailureResponse(WithdrawalRequest request, Account retrievedAccount,
+			BankNotes bankNotes) {
+		WithdrawalResponse response = new WithdrawalResponse();
+		generateResponse(request, retrievedAccount, bankNotes, response);
+
+		enrichResponseWithMessage(response, bankNotes.getResponseCode(), bankNotes.getResponseMessage(),
+				bankNotes.getResponseStatus());
+		return response;
+	}
+
+	private void generateResponse(WithdrawalRequest request, Account retrievedAccount, BankNotes bankNotes,
+			WithdrawalResponse response) {
+		response.setAmount(request.getAmount());
+		response.setCurrency(retrievedAccount.getCurrency());
+		response.setBankNotes(bankNotes);
+	}
+
+	private void validateWithdrawalRequest(WithdrawalRequest request, Account retrievedAccount,
+			double accessibleAmount) {
+
+		double overdraft = accessibleAmount - request.getAmount();
+		double amountDifference = retrievedAccount.getBalance() - request.getAmount();
+
+		if (requestedAmountLessThanBalance(request, retrievedAccount)) {
+			retrievedAccount.setBalance(amountDifference);
+		}
+
+		if (overdrafting(request, retrievedAccount, accessibleAmount)) {
+			retrievedAccount.setBalance(0);
+			retrievedAccount.setOverdraft(overdraft);
+		}
+	}
+
+	private boolean overdrafting(WithdrawalRequest request, Account retrievedAccount, double accessibleAmount) {
+		return request.getAmount() > retrievedAccount.getBalance() && request.getAmount() <= accessibleAmount;
+	}
+
+	private boolean requestedAmountLessThanBalance(WithdrawalRequest request, Account retrievedAccount) {
+		return request.getAmount() < retrievedAccount.getBalance();
+	}
+
+	private boolean withdrawalNotSuccessful(BankNotes bankNotes) {
+		return !bankNotes.getResponseCode().equalsIgnoreCase("0");
+	}
+
+	@Transactional
+	public WithdrawalResponse withdraw(WithdrawalRequest request) {
+		Account retrievedAccount;
+		WithdrawalResponse response = new WithdrawalResponse();
+		BankNotes bankNotes;
+		try {
+			// return
+			retrievedAccount = findAccountByAccountNumber(request.getAccountNumber());
+			verifyPIN(request, retrievedAccount);
+			double accessibleAmount = checkAmountAccessibility(request, retrievedAccount);
+			bankNotes = dispense(request.getAmount());
+			response = updateAccount(request, retrievedAccount, accessibleAmount, bankNotes);
+
+			generateResponse(request, retrievedAccount, bankNotes, response);
+
+			if (updateNotSuccessful(response))
+				return response;
+
+			enrichResponseWithMessage(response, "0", "successful withdrawal and dispense banknotes", APPROVED);
+
+		} catch (AccountNotFoundException e) {
+			enrichAccountNotFoundResponse(request, response);
+		} catch (WrongPINException e) {
+			enrichWrongPINResponse(request, response);
+		} catch (AmountNotAccessibleException e) {
+			enritchAmountNotAccessibleResponse(request, response, e);
 		}
 		return response;
 	}
 
-	public BankNotes dispense(double amount) throws CommonServiceException {
-		List<BankNotes> availableNotes = notesRepository.findAll();
-		BankNotes notes;
+	private void enrichAccountNotFoundResponse(WithdrawalRequest request, WithdrawalResponse response) {
+		enrichDetailedResponse(request, response);
+
+		response.setCurrency("");
+
+		enrichResponseWithMessage(response, "2", "invalid account number", FAILED);
+	}
+
+	private void enrichResponseWithMessage(WithdrawalResponse response, String responseCode, String responseMessage,
+			String responseStatus) {
+		response.setResponseCode(responseCode);
+		response.setResponseMessage(responseMessage);
+		response.setResponseStatus(responseStatus);
+	}
+
+	private void enrichDetailedResponse(WithdrawalRequest request, WithdrawalResponse response) {
+		response.setAccountNumber(request.getAccountNumber());
+		response.setAmount(request.getAmount());
+		response.setBankNotes(new BankNotes());
+	}
+
+	private void enrichWrongPINResponse(WithdrawalRequest request, WithdrawalResponse response) {
+		enrichDetailedResponse(request, response);
+		enrichResponseWithMessage(response, "1", "invalid pin", FAILED);
+
+	}
+
+	private void enritchAmountNotAccessibleResponse(WithdrawalRequest request, WithdrawalResponse response,
+			AmountNotAccessibleException e) {
+		enrichDetailedResponse(request, response);
+
+		response.setBalance(e.getAccount().getBalance());
+		response.setCurrency(e.getAccount().getCurrency());
+		response.setOverdraft(e.getAccount().getOverdraft());
+
+		enrichResponseWithMessage(response, "3", "amount is larger than maximum withdrawal amount", FAILED);
+
+	}
+
+	private boolean updateNotSuccessful(WithdrawalResponse response) {
+		return !response.getResponseCode().equalsIgnoreCase("0");
+	}
+
+	public BankNotes dispense(double amount) {
+		List<BankNotes> availableNotes = notesRepository.findAll(); // get all the available notes from the database
+		BankNotes notes = availableNotes.get(0);
 		BankNotes notesToBeDispensed = new BankNotes();
-		double result;
-		int remainder;
-		if (amount < 5) {
-			notesToBeDispensed.setFifty(0);
-			notesToBeDispensed.setTwenty(0);
-			notesToBeDispensed.setTen(0);
-			notesToBeDispensed.setFive(0);
-			notesToBeDispensed.setResponseCode("6");
-			notesToBeDispensed.setResponseMessage("can't dispense amount less than 5 euros");
-			notesToBeDispensed.setResponseStatus("failed");
+
+		if (amountIsNotValid(amount, notesToBeDispensed)) {
 			return notesToBeDispensed;
 		}
-		if (amount % 5 != 0) {
-			notesToBeDispensed.setFifty(0);
-			notesToBeDispensed.setTwenty(0);
-			notesToBeDispensed.setTen(0);
-			notesToBeDispensed.setFive(0);
-			notesToBeDispensed.setResponseCode("7");
-			notesToBeDispensed.setResponseMessage("can't dispense amount not divisible by 5");
-			notesToBeDispensed.setResponseStatus("failed");
-			return notesToBeDispensed;
-		}
-		if (availableNotes != null) {
-			if (!availableNotes.isEmpty()) {
-				notes = availableNotes.get(0);
+		if (machineHasBankNotes(availableNotes)) {
 
-				// select the minimum number of notes for the withdrawal
-				int[] dispensibleNotes = { 50, 20, 10, 5 };
-				for (int i = 0; i < dispensibleNotes.length; i++) {
-					if (amount == 0) {
-						break;
-					}
-
-					if (amount < dispensibleNotes[i]) {
-						continue;
-					} else {
-
-						int resdue;
-						double fraction;
-						switch (i) {
-						case 0:
-							result = amount / dispensibleNotes[0];
-							if (result > notes.getFifty()) {
-
-								amount = Math.abs(result - notes.getFifty()) * dispensibleNotes[0];
-								result = notes.getFifty();
-							} else {
-								amount = 0;
-							}
-							resdue = (int) result;
-							fraction = result - resdue;
-							if (fraction != 0) {
-								amount = fraction * dispensibleNotes[0];
-							}
-							notesToBeDispensed.setFifty(resdue);
-
-							break;
-						case 1:
-							result = amount / dispensibleNotes[1];
-							if (result > notes.getTwenty()) {
-
-								amount = Math.abs(result - notes.getTwenty()) * dispensibleNotes[1];
-								result = notes.getTwenty();
-							} else {
-								amount = 0;
-							}
-							resdue = (int) result;
-							fraction = result - resdue;
-							if (fraction != 0) {
-								amount = fraction * dispensibleNotes[1];
-							}
-							notesToBeDispensed.setTwenty(resdue);
-							break;
-						case 2:
-							result = amount / dispensibleNotes[2];
-							if (result > notes.getTen()) {
-								amount = Math.abs(result - notes.getTen()) * dispensibleNotes[2];
-								result = notes.getTen();
-							} else {
-								amount = 0;
-							}
-							resdue = (int) result;
-							fraction = result - resdue;
-							if (fraction != 0) {
-								amount = fraction * dispensibleNotes[2];
-							}
-							notesToBeDispensed.setTen(resdue);
-							break;
-						case 3:
-							result = amount / dispensibleNotes[3];
-							if (result > notes.getFive()) {
-								amount = Math.abs(result - notes.getTen()) * dispensibleNotes[3];
-								result = notes.getFive();
-							}
-							resdue = (int) result;
-							fraction = result - resdue;
-							if (fraction != 0) {
-								amount = fraction * dispensibleNotes[3];
-							}
-							notesToBeDispensed.setFive(resdue);
-							break;
-
-						default:
-							break;
-						}
-					}
+			for (int billTypes = 0; billTypes < dispensibleNotes.length; billTypes++) {
+				if (amount == 0) {
+					break;
 				}
-				// edit the number of banknotes in the reserve
-				notes.setFifty(notes.getFifty() - notesToBeDispensed.getFifty());
-				notes.setTwenty(notes.getTwenty() - notesToBeDispensed.getTwenty());
-				notes.setTen(notes.getTen() - notesToBeDispensed.getTen());
-				notes.setFive(notes.getFive() - notesToBeDispensed.getFive());
-				BankNotes editedBankNotes = edit(notes);
-				notesToBeDispensed.setResponseCode("0");
-				notesToBeDispensed.setResponseMessage("successful dispensing");
-				notesToBeDispensed.setResponseStatus("approved");
 
+				if (amount > dispensibleNotes[billTypes]) {
+					DispenseResult dispenseResult = dispenseBills(
+							new DispenseOrder(amount, notes, notesToBeDispensed, dispensibleNotes, billTypes));
+					amount = dispenseResult.getAmountAfterDispense();
+					notesToBeDispensed = dispenseResult.getDispensedNotesSoFar();
+				}
 			}
+			updateMachineNotes(notes, notesToBeDispensed);
+			enrichResponseWithMessage(notesToBeDispensed);
+		}
+		return notesToBeDispensed;
+	}
 
+	private void enrichResponseWithMessage(BankNotes notesToBeDispensed) {
+		notesToBeDispensed.setResponseCode("0");
+		notesToBeDispensed.setResponseMessage("successful dispensing");
+		notesToBeDispensed.setResponseStatus(APPROVED);
+	}
+
+	private void updateMachineNotes(BankNotes notes, BankNotes notesToBeDispensed) {
+		notes.setFifty(getAvailableBills(notes, 0) - getAvailableBills(notesToBeDispensed, 0));
+		notes.setTwenty(notes.getTwenty() - notesToBeDispensed.getTwenty());
+		notes.setTen(notes.getTen() - notesToBeDispensed.getTen());
+		notes.setFive(notes.getFive() - notesToBeDispensed.getFive());
+		edit(notes);
+	}
+
+	private boolean amountIsNotValid(double amount, BankNotes notesToBeDispensed) {
+		validateAmount(amount, notesToBeDispensed);
+		return !notesToBeDispensed.getResponseCode().equals("0");
+	}
+
+	private void validateAmount(double amount, BankNotes notesToBeDispensed) {
+		if (lessThanFiveEuros(amount)) {
+
+			enrichNotesToBeDispensed(notesToBeDispensed, "6", "can't dispense amount less than 5 euros", FAILED);
+			return;
+		}
+		if (notMultipleOfFive(amount)) {
+
+			enrichNotesToBeDispensed(notesToBeDispensed, "7", "can't dispense amount not divisible by 5", FAILED);
+			return;
 		}
 
-		return notesToBeDispensed;
+		notesToBeDispensed.setResponseCode("0");
+
+	}
+
+	private boolean machineHasBankNotes(List<BankNotes> availableNotes) {
+		return !availableNotes.isEmpty();
+	}
+
+	private void enrichNotesToBeDispensed(BankNotes notesToBeDispensed, String responseCode, String responseMessage,
+			String responseStatus) {
+		notesToBeDispensed.setFifty(0);
+		notesToBeDispensed.setTwenty(0);
+		notesToBeDispensed.setTen(0);
+		notesToBeDispensed.setFive(0);
+		notesToBeDispensed.setResponseCode(responseCode);
+		notesToBeDispensed.setResponseMessage(responseMessage);
+		notesToBeDispensed.setResponseStatus(responseStatus);
+	}
+
+	int getAvailableBills(BankNotes notes, int currentBill) {
+		if (currentBill == FIFTY_EUROS_BILL) {
+			return notes.getFifty();
+		}
+
+		if (currentBill == TWENTY_EUROS_BILL) {
+			return notes.getTwenty();
+		}
+
+		if (currentBill == TEN_EUROS_BILL) {
+			return notes.getTen();
+		}
+
+		if (currentBill == FIVE_EUROS_BILL) {
+			return notes.getFive();
+		}
+
+		return -1;
+
+	}
+
+	private boolean lessThanFiveEuros(double amount) {
+		return amount < 5;
+	}
+
+	private boolean notMultipleOfFive(double amount) {
+		return amount % 5 != 0;
+	}
+
+	protected DispenseResult dispenseBills(DispenseOrder dispenseOrder) {
+		double amount = 0;
+		Double numberOfBillsToBeDispensed = determineNumberOfBilles(dispenseOrder, dispenseOrder.getAmount());
+		int availableBills = getAvailableBills(dispenseOrder.getNotes(), dispenseOrder.getCurrentBill());
+
+		if (numberOfBillsToBeDispensed > availableBills) {
+			amount = calculateAmountDispensed(dispenseOrder, numberOfBillsToBeDispensed, availableBills);
+			numberOfBillsToBeDispensed = Double.valueOf(availableBills);
+		}
+
+		dispenseOrder.getNotesToBeDispensed().setFifty(numberOfBillsToBeDispensed.intValue());
+		return new DispenseResult(amount, dispenseOrder.getNotesToBeDispensed());
+
+	}
+
+	private double calculateAmountDispensed(DispenseOrder dispenseOrder, double numberOfBillsToBeDispensed,
+			int availableBills) {
+		return Math.abs(numberOfBillsToBeDispensed - availableBills)
+				* dispenseOrder.getDispensibleNotes()[dispenseOrder.getCurrentBill()];
+	}
+
+	private double determineNumberOfBilles(DispenseOrder dispenseOrder, double amount) {
+		return amount / dispenseOrder.getDispensibleNotes()[dispenseOrder.getCurrentBill()];
 	}
 
 }

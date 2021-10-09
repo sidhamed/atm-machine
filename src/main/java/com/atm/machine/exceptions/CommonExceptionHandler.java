@@ -20,27 +20,24 @@ public class CommonExceptionHandler {
 
 	@ExceptionHandler(NotFoundException.class)
 	public String handleNotFoundException() {
-		logger.info("Not found Exception happen");
+		logger.debug("Not found Exception happen");
 		return "error/error";
 	}
 
 	@ExceptionHandler(EntityNotFoundException.class)
 	public String handleSQLException(HttpServletRequest request, Exception ex) {
-		logger.info("SQLException Occured:: URL=" + request.getRequestURL());
-		// database error ---  database_error
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("SQLException Occured:: URL=%s", request.getRequestURL()) );
+
+		}
 		return "error/error";
 	}
 
 	@ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "IOException occured")
 	@ExceptionHandler(IOException.class)
 	public void handleIOException() {
-		logger.error("IOException handler executed");
-		// returning 404 error code
+		logger.debug("IOException handler executed");
 	}
 
-	/*
-	 * @Override public ModelAndView resolveException(HttpServletRequest
-	 * request, HttpServletResponse response, Object handler, Exception ex) { //
-	 * TODO Auto-generated method stub return null; }
-	 */
+	
 }

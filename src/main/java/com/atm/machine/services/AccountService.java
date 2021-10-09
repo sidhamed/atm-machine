@@ -6,7 +6,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.atm.machine.exceptions.CommonServiceException;
 import com.atm.machine.models.Account;
 import com.atm.machine.repositories.AccountRepository;
 import com.atm.machine.responses.AccountResponse;
@@ -17,34 +16,33 @@ public class AccountService {
 	@Autowired
 	private AccountRepository accountRepository;
 
-	public Account save(Account account) throws CommonServiceException {
+	public Account save(Account account) {
 		account.setStatus("Active");
 		account.setDateCreated(new Date());
 		account.setCurrency("euro");
 		return accountRepository.save(account);
 	}
 
-	public Account edit(Account account) throws CommonServiceException {
+	public Account edit(Account account) {
 
 		return accountRepository.saveAndFlush(account);
 	}
 
-	public Account findByAccountNumber(Account account) throws CommonServiceException {
-		Account retrievedAccount = accountRepository.findByAccountNumber(account.getAccountNumber());
-		return retrievedAccount;
+	public Account findByAccountNumber(Account account) {
+		return accountRepository.findByAccountNumber(account.getAccountNumber());
 	}
 
-	public void deleteById(Long id) throws CommonServiceException {
+	public void deleteById(Long id) {
 		accountRepository.deleteById(id);
 
 	}
 
-	public List<Account> findAll() throws CommonServiceException {
+	public List<Account> findAll() {
 
 		return accountRepository.findAll();
 	}
 
-	public AccountResponse getBalance(Account account) throws CommonServiceException {
+	public AccountResponse getBalance(Account account) {
 		Account retrievedAccount = accountRepository.findByAccountNumber(account.getAccountNumber());
 		AccountResponse response = new AccountResponse();
 
@@ -77,4 +75,3 @@ public class AccountService {
 		return response;
 	}
 }
-

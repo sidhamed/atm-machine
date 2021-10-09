@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.atm.machine.models.Account;
 import com.atm.machine.models.BankNotes;
-import com.atm.machine.repositories.AccountRepository;
 import com.atm.machine.repositories.BankNotesRepository;
 import com.atm.machine.services.AccountService;
 
@@ -25,7 +24,7 @@ public class AtmMachineInit {
 
 	@PostConstruct
 	@Transactional
-	public void initializeAtmMachine() throws Exception {
+	public void initializeAtmMachine() {
 		
 		// delete if already found
 		List<Account> deletedAccounts = accountService.findAll();
@@ -48,8 +47,8 @@ public class AtmMachineInit {
 		two.setBalance(1230);
 		two.setOverdraft(150);
 		
-		Account oneSaved = accountService.save(one);
-		Account twoSaved = accountService.save(two);
+		accountService.save(one);
+		accountService.save(two);
 		
 		BankNotes initNotes = new BankNotes();
 		initNotes.setFifty(10);
@@ -57,7 +56,7 @@ public class AtmMachineInit {
 		initNotes.setTen(30);
 		initNotes.setFive(20);
 		
-		BankNotes savedNotes = bankNotesRepositotry.save(initNotes);
+		bankNotesRepositotry.save(initNotes);
 
 	}
 

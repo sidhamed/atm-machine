@@ -1,7 +1,6 @@
 package com.atm.machine.tests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.any;
 import static org.mockito.Mockito.lenient;
 
 import java.util.ArrayList;
@@ -14,21 +13,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.atm.machine.exceptions.CommonServiceException;
 import com.atm.machine.models.Account;
 import com.atm.machine.models.BankNotes;
 import com.atm.machine.repositories.AccountRepository;
 import com.atm.machine.repositories.BankNotesRepository;
 import com.atm.machine.requests.WithdrawalRequest;
 import com.atm.machine.responses.WithdrawalResponse;
-import com.atm.machine.services.AccountService;
 import com.atm.machine.services.WithdrawalService;
 
 @ExtendWith(MockitoExtension.class)
-public class WithdrawalServiceTest {
+class WithdrawalServiceTest {
 
 	@Mock
 	private AccountRepository accountRepository;
@@ -66,7 +62,7 @@ public class WithdrawalServiceTest {
 		BankNotes notes200 = new BankNotes();
 		notes200.setFifty(4);
 		notes200.setResponseCode("0");
-		
+
 		BankNotes notes900 = new BankNotes();
 		notes900.setFifty(8);
 		notes900.setResponseCode("0");
@@ -83,14 +79,10 @@ public class WithdrawalServiceTest {
 		lenient().when(accountRepository.findByAccountNumber("123456789")).thenReturn(one);
 		lenient().when(accountRepository.findByAccountNumber("987654321")).thenReturn(two);
 		lenient().when(bankNotesRepository.findAll()).thenReturn(list);
-		try {
-			lenient().when(withdrawalService.dispense(200)).thenReturn(notes200);
-			lenient().when(withdrawalService.dispense(900)).thenReturn(notes900);
-			lenient().when(accountRepository.saveAndFlush(one)).thenReturn(account);
 
-		} catch (CommonServiceException e) {
-			e.printStackTrace();
-		}
+		lenient().when(withdrawalService.dispense(200)).thenReturn(notes200);
+		lenient().when(withdrawalService.dispense(900)).thenReturn(notes900);
+		lenient().when(accountRepository.saveAndFlush(one)).thenReturn(account);
 
 	}
 
@@ -102,15 +94,10 @@ public class WithdrawalServiceTest {
 		request.setAccountNumber("123456");
 		request.setPin("1234");
 
-		try {
-			WithdrawalResponse recieved = withdrawalService.withdraw(request);
-			assertThat(recieved.getResponseCode()).isEqualTo("2");
-			assertThat(recieved.getResponseMessage()).isEqualTo("invalid account number");
-			assertThat(recieved.getResponseStatus()).isEqualTo("failed");
-		} catch (CommonServiceException e) {
-			e.printStackTrace();
-			
-		}
+		WithdrawalResponse recieved = withdrawalService.withdraw(request);
+		assertThat(recieved.getResponseCode()).isEqualTo("2");
+		assertThat(recieved.getResponseMessage()).isEqualTo("invalid account number");
+		assertThat(recieved.getResponseStatus()).isEqualTo("failed");
 
 	}
 
@@ -122,14 +109,10 @@ public class WithdrawalServiceTest {
 		request.setAccountNumber("123456789");
 		request.setPin("12");
 
-		try {
-			WithdrawalResponse recieved = withdrawalService.withdraw(request);
-			assertThat(recieved.getResponseCode()).isEqualTo("1");
-			assertThat(recieved.getResponseMessage()).isEqualTo("invalid pin");
-			assertThat(recieved.getResponseStatus()).isEqualTo("failed");
-		} catch (CommonServiceException e) {
-			e.printStackTrace();
-		}
+		WithdrawalResponse recieved = withdrawalService.withdraw(request);
+		assertThat(recieved.getResponseCode()).isEqualTo("1");
+		assertThat(recieved.getResponseMessage()).isEqualTo("invalid pin");
+		assertThat(recieved.getResponseStatus()).isEqualTo("failed");
 
 	}
 
@@ -142,15 +125,10 @@ public class WithdrawalServiceTest {
 		request.setPin("1234");
 		request.setAmount(5000);
 
-		try {
-			WithdrawalResponse recieved = withdrawalService.withdraw(request);
-			assertThat(recieved.getResponseCode()).isEqualTo("3");
-			assertThat(recieved.getResponseMessage()).isEqualTo("amount is larger than maximum withdrawal amount");
-			assertThat(recieved.getResponseStatus()).isEqualTo("failed");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		WithdrawalResponse recieved = withdrawalService.withdraw(request);
+		assertThat(recieved.getResponseCode()).isEqualTo("3");
+		assertThat(recieved.getResponseMessage()).isEqualTo("amount is larger than maximum withdrawal amount");
+		assertThat(recieved.getResponseStatus()).isEqualTo("failed");
 
 	}
 
@@ -163,14 +141,9 @@ public class WithdrawalServiceTest {
 		request.setPin("1234");
 		request.setAmount(3);
 
-		try {
-			WithdrawalResponse recieved = withdrawalService.withdraw(request);
-			assertThat(recieved.getResponseCode()).isNotEqualTo("0");
-			assertThat(recieved.getResponseStatus()).isEqualTo("failed");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		WithdrawalResponse recieved = withdrawalService.withdraw(request);
+		assertThat(recieved.getResponseCode()).isNotEqualTo("0");
+		assertThat(recieved.getResponseStatus()).isEqualTo("failed");
 
 	}
 
@@ -183,17 +156,12 @@ public class WithdrawalServiceTest {
 		request.setPin("1234");
 		request.setAmount(200);
 
-		try {
-
-			WithdrawalResponse recieved = withdrawalService.withdraw(request);
-			assertThat(recieved.getResponseCode()).isEqualTo("0");
-			assertThat(recieved.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-			e.printStackTrace();
-		}
+		WithdrawalResponse recieved = withdrawalService.withdraw(request);
+		assertThat(recieved.getResponseCode()).isEqualTo("0");
+		assertThat(recieved.getResponseStatus()).isEqualTo("approved");
 
 	}
-	
+
 	@Test
 	@DisplayName("Test successful withdrawal for amount more than balance")
 	void sucessfulWithdawalMoreThanBalance() {
@@ -203,14 +171,9 @@ public class WithdrawalServiceTest {
 		request.setPin("1234");
 		request.setAmount(900);
 
-		try {
-
-			WithdrawalResponse recieved = withdrawalService.withdraw(request);
-			assertThat(recieved.getResponseCode()).isEqualTo("0");
-			assertThat(recieved.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-			e.printStackTrace();
-		}
+		WithdrawalResponse recieved = withdrawalService.withdraw(request);
+		assertThat(recieved.getResponseCode()).isEqualTo("0");
+		assertThat(recieved.getResponseStatus()).isEqualTo("approved");
 
 	}
 
@@ -221,14 +184,10 @@ public class WithdrawalServiceTest {
 		double amount = 3.0;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("6");
-			assertThat(notes.getResponseMessage()).isEqualTo("can't dispense amount less than 5 euros");
-			assertThat(notes.getResponseStatus()).isEqualTo("failed");
-		} catch (CommonServiceException e) {
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("6");
+		assertThat(notes.getResponseMessage()).isEqualTo("can't dispense amount less than 5 euros");
+		assertThat(notes.getResponseStatus()).isEqualTo("failed");
 
 	}
 
@@ -239,14 +198,10 @@ public class WithdrawalServiceTest {
 		double amount = 7;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("7");
-			assertThat(notes.getResponseMessage()).isEqualTo("can't dispense amount not divisible by 5");
-			assertThat(notes.getResponseStatus()).isEqualTo("failed");
-		} catch (CommonServiceException e) {
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("7");
+		assertThat(notes.getResponseMessage()).isEqualTo("can't dispense amount not divisible by 5");
+		assertThat(notes.getResponseStatus()).isEqualTo("failed");
 
 	}
 
@@ -257,15 +212,10 @@ public class WithdrawalServiceTest {
 		double amount = 1305.0;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("0");
-			assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
-			assertThat(notes.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("0");
+		assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
+		assertThat(notes.getResponseStatus()).isEqualTo("approved");
 
 	}
 
@@ -276,15 +226,10 @@ public class WithdrawalServiceTest {
 		double amount = 0.0;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("6");
-			assertThat(notes.getResponseMessage()).isEqualTo("can't dispense amount less than 5 euros");
-			assertThat(notes.getResponseStatus()).isEqualTo("failed");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("6");
+		assertThat(notes.getResponseMessage()).isEqualTo("can't dispense amount less than 5 euros");
+		assertThat(notes.getResponseStatus()).isEqualTo("failed");
 
 	}
 
@@ -295,16 +240,10 @@ public class WithdrawalServiceTest {
 		double amount = 200.0;
 		BankNotes notes;
 
-		try {
-
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("0");
-			assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
-			assertThat(notes.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("0");
+		assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
+		assertThat(notes.getResponseStatus()).isEqualTo("approved");
 
 	}
 
@@ -315,15 +254,10 @@ public class WithdrawalServiceTest {
 		double amount = 40.0;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("0");
-			assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
-			assertThat(notes.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("0");
+		assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
+		assertThat(notes.getResponseStatus()).isEqualTo("approved");
 
 	}
 
@@ -334,15 +268,10 @@ public class WithdrawalServiceTest {
 		double amount = 10.0;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("0");
-			assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
-			assertThat(notes.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("0");
+		assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
+		assertThat(notes.getResponseStatus()).isEqualTo("approved");
 
 	}
 
@@ -353,15 +282,10 @@ public class WithdrawalServiceTest {
 		double amount = 5.0;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("0");
-			assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
-			assertThat(notes.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("0");
+		assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
+		assertThat(notes.getResponseStatus()).isEqualTo("approved");
 
 	}
 
@@ -372,15 +296,10 @@ public class WithdrawalServiceTest {
 		double amount = 1500.0;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("0");
-			assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
-			assertThat(notes.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("0");
+		assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
+		assertThat(notes.getResponseStatus()).isEqualTo("approved");
 
 	}
 
@@ -391,15 +310,10 @@ public class WithdrawalServiceTest {
 		double amount = 1700.0;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			assertThat(notes.getResponseCode()).isEqualTo("0");
-			assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
-			assertThat(notes.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		assertThat(notes.getResponseCode()).isEqualTo("0");
+		assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
+		assertThat(notes.getResponseStatus()).isEqualTo("approved");
 
 	}
 
@@ -410,16 +324,11 @@ public class WithdrawalServiceTest {
 		double amount = 1500.0;
 		BankNotes notes;
 
-		try {
-			notes = withdrawalService.dispense(amount);
-			notes = withdrawalService.dispense(amount); // repeat
-			assertThat(notes.getResponseCode()).isEqualTo("0");
-			assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
-			assertThat(notes.getResponseStatus()).isEqualTo("approved");
-		} catch (CommonServiceException e) {
-
-			e.printStackTrace();
-		}
+		notes = withdrawalService.dispense(amount);
+		notes = withdrawalService.dispense(amount); // repeat
+		assertThat(notes.getResponseCode()).isEqualTo("0");
+		assertThat(notes.getResponseMessage()).isEqualTo("successful dispensing");
+		assertThat(notes.getResponseStatus()).isEqualTo("approved");
 
 	}
 

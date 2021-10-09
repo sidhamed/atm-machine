@@ -4,6 +4,7 @@ plugins {
 	id 'java'
 	id 'eclipse'
 	id 'jacoco'
+	id "org.sonarqube" version "3.0"
 }
 
 
@@ -42,5 +43,20 @@ test {
 	finalizedBy jacocoTestReport
 }
 jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.enabled true
+    }
+}
+
+sonarqube {
+    properties {
+        property 'sonar.host.url', 'http://localhost:9000'
+        property 'sonar.projectKey', 'atm'
+        property 'sonar.login', 'a2ccc791236a0adc3d73c8f1f48ff655d2eec7a4'
+    }
+}
+
+tasks.named('sonarqube').configure {
     dependsOn test
 }
