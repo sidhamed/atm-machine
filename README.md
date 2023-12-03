@@ -1,6 +1,6 @@
 <h2> Atm Machine Software By Siddiq Hamed</h2>
 a simple web application simulating an ATM , with services like Balance Inquiry , and Withdrawal , using JSON to exchange data
-and HTTP POST verb.
+and HTTP POST verb and reviewed by MNM.
 
 <h3>built using :</h3></br>
  * Java </br>
