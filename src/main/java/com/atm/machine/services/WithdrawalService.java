@@ -27,6 +27,7 @@ public class WithdrawalService {
 	private static final int TWENTY_EUROS_BILL = 1;
 	private static final int FIFTY_EUROS_BILL = 0;
 	private static final int FIFTY_DOLLARS_BILL = 0;
+	private static final int SIXTY_DOLLARS_BILL = 50;
 
 	@Autowired
 	private AccountRepository accountRepository;
